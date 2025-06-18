@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Professional HTTP Load Testing Tool for API performance testing">
+    <title>Load Test UI - Professional HTTP Load Testing Tool</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <div class="container">
+        <header role="banner">
+            <h1>🚀 Load Test UI</h1>
+            <p>Professional HTTP Load Testing Tool</p>
+        </header>
+
+        <main class="main-content" role="main" id="main-content">
+            <!-- Configuration Panel -->
+            <section class="config-panel" role="form" aria-labelledby="config-title">
+                <h2 id="config-title">Test Configuration</h2>
+                
+                <!-- Form validation messages -->
+                <div id="validation-messages" class="validation-messages" role="alert" aria-live="polite" hidden></div>
+                
+                <div class="form-group">
+                    <label for="url">Target URL <span class="required" aria-label="required">*</span></label>
+                    <input type="url" id="url" placeholder="https://api.example.com/endpoint" required 
+                           aria-describedby="url-help" aria-invalid="false">
+                    <small id="url-help" class="help-text">Enter the complete URL you want to test</small>
+                    <div class="error-message" id="url-error" role="alert" hidden></div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="method">HTTP Method</label>
+                        <select id="method" aria-describedby="method-help">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="PATCH">PATCH</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                        <small id="method-help" class="help-text">Choose the HTTP method for your requests</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="concurrentUsers">Concurrent Users</label>
+                        <input type="number" id="concurrentUsers" value="10" min="1" max="1000" 
+                               aria-describedby="users-help" aria-invalid="false">
+                        <small id="users-help" class="help-text">Number of simultaneous users (1-1000)</small>
+                        <div class="error-message" id="users-error" role="alert" hidden></div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="totalRequests">Total Requests</label>
+                        <input type="number" id="totalRequests" value="100" min="1" max="50000" 
+                               aria-describedby="requests-help" aria-invalid="false">
+                        <small id="requests-help" class="help-text">Total number of requests to send</small>
+                        <div class="error-message" id="requests-error" role="alert" hidden></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="delayBetweenRequests">Delay Between Requests (ms)</label>
+                        <input type="number" id="delayBetweenRequests" value="1000" min="0" max="10000" 
+                               aria-describedby="delay-help" aria-invalid="false">
+                        <small id="delay-help" class="help-text">Delay between requests in milliseconds</small>
+                        <div class="error-message" id="delay-error" role="alert" hidden></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="headers">Headers (JSON format)</label>
+                    <textarea id="headers" placeholder='{"Content-Type": "application/json", "Authorization": "Bearer token"}' 
+                              aria-describedby="headers-help" aria-invalid="false"></textarea>
+                    <small id="headers-help" class="help-text">Enter headers in JSON format</small>
+                    <div class="error-message" id="headers-error" role="alert" hidden></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="body">Request Body (for POST/PUT/PATCH)</label>
+                    <textarea id="body" placeholder='{"key": "value"}' 
+                              aria-describedby="body-help" aria-invalid="false"></textarea>
+                    <small id="body-help" class="help-text">Enter request body in JSON format</small>
+                    <div class="error-message" id="body-error" role="alert" hidden></div>
+                </div>
+
+                <div class="controls">
+                    <button id="startTest" class="btn btn-primary" aria-label="Start Load Test">
+                        <span class="btn-icon">▶️</span>
+                        Start Load Test
+                    </button>
+                    <button id="stopTest" class="btn btn-danger" disabled aria-label="Stop Test">
+                        <span class="btn-icon">⏹️</span>
+                        Stop Test
+                    </button>
+                    <button id="showHistory" class="btn btn-secondary" aria-label="Test History">
+                        <span class="btn-icon">📋</span>
+                        Test History
+                    </button>
+                    <button id="importCurl" class="btn btn-info" aria-label="Import cURL">
+                        <span class="btn-icon">📥</span>
+                        Import cURL
+                    </button>
+                </div>
+
+                <!-- Test History Modal -->
+                <div id="historyModal" class="modal" role="dialog" aria-labelledby="history-title" aria-hidden="true">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="history-title">Test History</h3>
+                            <button class="close" onclick="document.getElementById('historyModal').style.display='none'" aria-label="Close">
+                                &times;
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="history-controls">
+                                <button id="clearHistory" class="btn btn-danger btn-small" aria-label="Clear All">
+                                    Clear All
+                                </button>
+                            </div>
+                            <div id="historyList" class="history-list" role="list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- cURL Import Modal -->
+                <div id="curlModal" class="modal" role="dialog" aria-labelledby="curl-title" aria-hidden="true">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="curl-title">Import from cURL</h3>
+                            <button class="close" onclick="document.getElementById('curlModal').style.display='none'" aria-label="Close">
+                                &times;
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="curlInput">Paste your cURL command:</label>
+                                <textarea id="curlInput" placeholder="curl -X POST https://api.example.com/endpoint \&#10;  -H 'Content-Type: application/json' \&#10;  -d '{&quot;key&quot;: &quot;value&quot;}'" 
+                                          aria-describedby="curl-help" aria-invalid="false"></textarea>
+                                <small id="curl-help" class="help-text">Paste your cURL command here</small>
+                                <div class="error-message" id="curl-error" role="alert" hidden></div>
+                            </div>
+                            <div class="curl-actions">
+                                <button id="parseCurl" class="btn btn-primary" aria-label="Parse & Import">
+                                    Parse & Import
+                                </button>
+                                <button class="btn btn-secondary" onclick="document.getElementById('curlModal').style.display='none'" aria-label="Cancel">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Statistics Panel -->
+            <section class="stats-panel" role="region" aria-labelledby="stats-title">
+                <h2 id="stats-title">Test Statistics</h2>
+                
+                <div class="status-bar">
+                    <div class="status-item">
+                        <span class="status-label">Status:</span>
+                        <span id="testStatus" class="status-value" role="status">Ready</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Elapsed:</span>
+                        <span id="elapsedTime" class="status-value" role="timer">0s</span>
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="sentRequests" role="meter">0</div>
+                        <div class="metric-label">Sent Requests</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="receivedResponses" role="meter">0</div>
+                        <div class="metric-label">Received Responses</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalRequests" role="meter">0</div>
+                        <div class="metric-label">Total Requests</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="successfulRequests" role="meter">0</div>
+                        <div class="metric-label">Successful</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="failedRequests" role="meter">0</div>
+                        <div class="metric-label">Failed</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="successRate" role="meter">0%</div>
+                        <div class="metric-label">Success Rate</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="avgResponseTime" role="meter">0ms</div>
+                        <div class="metric-label">Avg Response Time</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="requestsPerSecond" role="meter">0</div>
+                        <div class="metric-label">Requests/sec</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="responseRate" role="meter">0</div>
+                        <div class="metric-label">Responses/sec</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="tp90" role="meter">0ms</div>
+                        <div class="metric-label">TP90 Response Time</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="tp95" role="meter">0ms</div>
+                        <div class="metric-label">TP95 Response Time</div>
+                    </div>
+                </div>
+
+                <!-- Status Code Breakdown -->
+                <div class="status-breakdown">
+                    <h3>Response Status Codes</h3>
+                    <div id="statusCodeBreakdown" class="status-grid" role="grid"></div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <h3>Response Time Trend</h3>
+                        <canvas id="responseTimeChart" role="img" aria-label="Response Time Trend Chart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <h3>Request Rate</h3>
+                        <canvas id="requestRateChart" role="img" aria-label="Request Rate Chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Real-time Log -->
+                <div class="log-container">
+                    <h3>Real-time Log</h3>
+                    <div id="testLog" class="log-content" role="log"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
